@@ -1,0 +1,178 @@
+/*
+
+--:-- 	INTEGRANTES	  --:--
+
+1)  Juan José Valdez Jiménez		VJ11002
+2)  Mauricio Edgardo Montano Vásquez	MV12025
+3)  Roberto Carlos Cardenas Ramírez	CR12011
+
+*/
+
+// Importando la libreria CapacitiveSensor.h
+#include <CapacitiveSensor.h>
+
+//Multiplicador para aumentar o disminuir la nota musical
+#define semitom 1.05946309435929
+
+//Define el limite del sensor para identificar un toque
+#define limite 150
+
+//Define el PIN para el parlante
+#define speaker 11
+
+//Define el pin del pulsador
+#define botaoPin 13
+
+//Define pin del LED
+#define ledPin A0
+
+//Maximo de onda que puede disminuir
+#define maxMenos -43
+
+//Maximo de onda que puede aumentar
+#define maxMais 37
+
+//Frecuencia de cada nota
+//               C         C#           D         D#         E          F       
+float notas[] = {523.25, 554.36, 587.33, 622.25, 659.26, 698.46, 739.99, 783.99};
+
+ 
+CapacitiveSensor   c = CapacitiveSensor(2,3);     //Resistor de 1M  entre los pinos 2 e 3;
+CapacitiveSensor   csus = CapacitiveSensor(2,4);  //Resistor de 1M  entre los pinos 2 e 4;
+CapacitiveSensor   d = CapacitiveSensor(2,5);     //Resistor de 1M  entre los pinos 2 e 5;
+CapacitiveSensor   dsus = CapacitiveSensor(2,6);  //Resistor de 1M  entre los pinos 2 e 6;
+CapacitiveSensor   e = CapacitiveSensor(2,7);     //Resistor de 1M  entre los pinos 2 e 7;
+CapacitiveSensor   f = CapacitiveSensor(2,8);    //Resistor de 1M  entre los pinos 2 e 8;
+CapacitiveSensor   fsus = CapacitiveSensor(2,9);  //Resistor de 1M  entre los pinos 2 e 9;
+CapacitiveSensor   g = CapacitiveSensor(2,10);   //Resistor de 1M  entre los pinos 2 e 10;
+
+
+boolean press = false;//identifica si el boton ha sido presionado
+int botaoVal = 1;//guarda la lectura del boton
+int contSemitons = 0;//Cuenta las ondas que han disminuido o aumentado
+void setup(){  
+  //Inicia la comunicacion con el puerto serial
+  Serial.begin(9600);
+  digitalWrite(botaoPin, HIGH);
+  pinMode(ledPin, OUTPUT);
+  pinMode(botaoPin, INPUT);
+}
+
+void loop(){
+  // Set a timer.
+  long start = millis();
+  
+  // Asignacion de sensores capacitivos a cada tecla
+  long total1  =  c.capacitiveSensor(30);
+  long total2  =  csus.capacitiveSensor(30);
+  long total3  =  d.capacitiveSensor(30);
+  long total4  =  dsus.capacitiveSensor(30);
+  long total5  =  e.capacitiveSensor(30);
+  long total6  =  f.capacitiveSensor(30);
+  long total7  =  fsus.capacitiveSensor(30);
+  long total8  =  g.capacitiveSensor(30); 
+  
+  botaoVal = digitalRead(botaoPin);//Fin de lectura del boton
+  while(botaoVal == 0){//Esto se ejecuta mientras el boton este precionado
+    botaoVal = digitalRead(botaoPin);
+    if (botaoVal == 1)//Alterna los valores cuando estan siendo presionados
+       press = !press;
+    
+  }
+       
+  digitalWrite(ledPin, press);//Enciende o apaga el led
+
+
+  //Debug
+  Serial.print(total1);                  // Imprime la lectura de tecla 1
+  Serial.print("\t");                    // Espacio entre cada lectura
+  Serial.print(total2);                  // Imprime la lectura de tecla 2
+  Serial.print("\t");                    // Espaco entre cada lectura
+  Serial.print(total3);                  // Imprime a leitura da tecla 3
+  Serial.print("\t");                    // Espaco entre cada leitura
+  Serial.print(total4);                  // Imprime a leitura da tecla 4
+  Serial.print("\t");                    // Espaco entre cada leitura
+  Serial.print(total5);                  // Imprime a leitura da tecla 5
+  Serial.print("\t");                    // Espaco entre cada leitura
+  Serial.print(total6);                  // Imprime a leitura da tecla 6
+  Serial.print("\t");                    // Espaco entre cada leitura
+  Serial.print(total7);                  // Imprime a lectura de tecla 7
+  Serial.print("\t");                    // Espaco entre cada lectura
+  Serial.print(total8);                  // Imprime a lectura de tecla 8
+  Serial.print("\t");                    // Espacio entre cada leitura
+  
+  if (total1 > limite) 
+    tone(speaker,notas[0]);//Toca una nota especifica
+  if (total2 > limite)
+    tone(speaker,notas[1]);
+  if (total3 > limite)
+    tone(speaker,notas[2]);
+  if (total4 > limite)
+    tone(speaker,notas[3]);
+  if (total5 > limite)
+    tone(speaker,notas[4]);
+  if (total6 > limite)
+    tone(speaker,notas[5]);
+  if (total7 > limite)
+    tone(speaker,notas[6]);
+  if (total8 > limite) 
+    tone(speaker,notas[7]);
+    
+  
+  // Si ninguna tecla ha sido presionada no emite ningun sonido
+  if (total1<=limite && total2<=limite && total3<=limite && total4<=limite && total5<=limite && total7<=limite && total6<=limite && total8<=limite)
+    noTone(speaker);
+
+  delay(10);
+}
+
+void abaixarTom(int leitura){    
+  int valor = 0;//Numero de ondas
+  int dl = 0;//delay
+  
+  if (leitura == 0){//Se obtiene la lectura si ha sido presionado
+    valor = 12;//12 emisiones en cada tecla
+    dl = 100;
+  }
+  else{
+    valor = 1;//Una emicion en cada tecla
+    dl = 50;
+  }
+  
+  if (contSemitons - valor > maxMenos){//Verifica si esta permitido
+    contSemitons -= valor;
+    
+    Serial.println(contSemitons);
+    for (int j = 0; j < valor; j++){
+     for (int i = 0; i < 12; i++) {
+       notas[i] = (notas[i] / semitom);
+     }
+    }
+  }
+  delay(dl);
+}
+
+void aumentarTom(int leitura){
+  int valor = 0;//Numero de ondas a aumentar
+  int dl = 0;//delay
+  
+  if (leitura == 0){//Verifica si ha sido presionado
+    valor = 12;//Aumenta las emiciones en 12
+    dl = 100;
+  }
+  else{
+    valor = 1;//aumenta 1 emision por tecla
+    dl = 50;
+  }
+  
+  if (contSemitons + valor < maxMais){//verifica si se ha permitido aumentar
+     contSemitons += valor;
+         Serial.println(contSemitons);
+    for (int j = 0; j < valor; j++){
+     for (int i = 0; i < 12; i++) {
+       notas[i] = (notas[i] * semitom);
+     }
+    }
+  }
+  delay(dl);
+}
